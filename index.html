@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Điệp Vụ Vật Lí: Tốc Độ & Vị Trí</title>
+    <style>
+        :root {
+            --bg-color: #0b132b;
+            --panel-bg: #1c2541;
+            --primary: #48cae4;
+            --secondary: #fca311;
+            --success: #38b000;
+            --danger: #d00000;
+            --text-main: #edf2f4;
+            --text-muted: #8d99ae;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; user-select: none; }
+        
+        body { 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            background-image: radial-gradient(circle at 50% 0%, #1c2541, transparent 70%);
+        }
+
+        .game-wrapper {
+            background: var(--panel-bg);
+            width: 95%;
+            max-width: 900px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 15px rgba(72, 202, 228, 0.2);
+            border: 1px solid rgba(72, 202, 228, 0.3);
+            display: flex;
+            flex-direction: column;
+            min-height: 600px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* HEADER */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 25px;
+            background: rgba(11, 19, 43, 0.9);
+            border-bottom: 2px solid var(--primary);
+        }
+        .header h2 { font-size: 1.5rem; color: var(--primary); text-transform: uppercase; letter-spacing: 1px;}
+        .stats { display: flex; gap: 20px; font-size: 1.2rem; font-weight: bold; align-items: center; }
+        .time-box { color: var(--danger); text-shadow: 0 0 10px rgba(208, 0, 0, 0.5); }
+        .score-box { color: var(--secondary); text-shadow: 0 0 10px rgba(252, 163, 17, 0.5); }
+        .btn-icon { background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; transition: 0.2s; }
+        .btn-icon:hover { color: var(--primary); transform: scale(1.1); }
+        
+        .progress-bar { width: 100%; height: 6px; background: #3a506b; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--secondary), var(--primary)); width: 0%; transition: width 0.3s ease; }
+
+        /* SCREENS */
+        .screen { padding: 40px; display: none; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1; animation: fadeIn 0.4s ease; width: 100%; }
+        .screen.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* TYPOGRAPHY & INPUTS */
+        .icon-large { font-size: 5rem; margin-bottom: 15px; text-shadow: 0 0 20px var(--primary);}
+        .title { font-size: 2.2rem; color: var(--primary); margin-bottom: 10px; text-transform: uppercase; text-align: center; }
+        .subtitle { font-size: 1.1rem; color: var(--text-muted); text-align: center; margin-bottom: 30px; line-height: 1.5; max-width: 650px; }
+        
+        .input-group { display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 350px; margin-bottom: 30px; }
+        .input-field { padding: 15px; border-radius: 8px; border: 2px solid #3a506b; background: #0b132b; color: white; font-size: 1.2rem; text-align: center; transition: 0.3s;}
+        .input-field:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 10px rgba(72, 202, 228, 0.3);}
+
+        .btn {
+            background: linear-gradient(135deg, var(--primary), #0096c7);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 150, 199, 0.4);
+        }
+        .btn:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0, 150, 199, 0.6); }
+
+        /* QUESTION UI */
+        .q-header { width: 100%; display: flex; justify-content: space-between; margin-bottom: 20px; font-weight: bold; color: var(--secondary); background: rgba(252, 163, 17, 0.1); padding: 10px 15px; border-radius: 8px;}
+        .question-text { font-size: 1.5rem; font-weight: 600; line-height: 1.5; color: var(--text-main); margin-bottom: 30px; width: 100%; text-align: justify; }
+        
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; }
+        .opt-btn {
+            background: #2b3a67; border: 2px solid #3a506b; color: var(--text-main);
+            padding: 20px; font-size: 1.1rem; border-radius: 12px; cursor: pointer;
+            text-align: left; transition: 0.2s; display: flex; align-items: center;
+        }
+        .opt-btn:hover:not(:disabled) { background: #3a506b; border-color: var(--primary); transform: scale(1.02);}
+        .opt-btn.correct { background: rgba(56, 176, 0, 0.2); border-color: var(--success); color: white; }
+        .opt-btn.wrong { background: rgba(208, 0, 0, 0.2); border-color: var(--danger); color: white; }
+        .opt-btn:disabled { cursor: default; }
+        .opt-letter { font-weight: bold; background: rgba(255,255,255,0.1); padding: 5px 15px; border-radius: 8px; margin-right: 15px; font-size: 1.2rem;}
+
+        /* FEEDBACK */
+        .feedback-box { width: 100%; padding: 20px; border-radius: 8px; margin-top: 20px; display: none; background: rgba(0,0,0,0.4); border-left: 5px solid transparent; }
+        .feedback-box.show { display: block; animation: fadeIn 0.3s; }
+        .feedback-box.success { border-color: var(--success); }
+        .feedback-box.error { border-color: var(--danger); }
+        .feedback-title { font-size: 1.3rem; font-weight: bold; margin-bottom: 8px; }
+        .success .feedback-title { color: var(--success); }
+        .error .feedback-title { color: var(--danger); }
+
+        /* OVERLAY */
+        .overlay { position: absolute; top:0; left:0; width:100%; height:100%; background:rgba(11, 19, 43, 0.95); display:none; flex-direction:column; justify-content:center; align-items:center; z-index:10; }
+        .loader { border: 5px solid #3a506b; border-top: 5px solid var(--primary); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        @media (max-width: 768px) {
+            .options-grid { grid-template-columns: 1fr; }
+            .question-text { font-size: 1.2rem; }
+            .opt-btn { font-size: 1rem; padding: 15px; }
+            .icon-large { font-size: 4rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-wrapper">
+    <div class="header">
+        <h2>VẬT LÍ 10 - ĐỘNG HỌC</h2>
+        <div class="stats">
+            <span class="time-box">⏳ <span id="ui-time">20:00</span></span>
+            <span class="score-box">⭐ <span id="ui-score">0</span></span>
+            <button class="btn-icon" id="btn-mute" title="Bật/Tắt âm thanh">🔊</button>
+        </div>
+    </div>
+    
+    <div class="progress-bar"><div class="progress-fill" id="ui-progress"></div></div>
+
+    <!-- MÀN HÌNH ĐĂNG NHẬP -->
+    <div class="screen active" id="screen-login">
+        <div class="icon-large">🏎️</div>
+        <h1 class="title">ĐƯỜNG ĐUA ĐỘNG HỌC</h1>
+        <p class="subtitle">Thử thách bao gồm 15 câu hỏi trọng tâm về Bài 4 & Bài 5. Thời gian giới hạn là 20 phút. Kết quả sẽ được đồng bộ trực tiếp về máy chủ của Giáo viên.</p>
+        
+        <div class="input-group">
+            <input type="text" id="input-name" class="input-field" placeholder="Nhập Họ và Tên" required autocomplete="off">
+            <input type="text" id="input-class" class="input-field" placeholder="Nhập Lớp (Ví dụ: 10A1)" required autocomplete="off">
+        </div>
+        <button class="btn" onclick="game.login()">KHỞI ĐỘNG ĐỘNG CƠ</button>
+    </div>
+
+    <!-- MÀN HÌNH CÂU HỎI -->
+    <div class="screen" id="screen-play">
+        <div class="q-header">
+            <span id="ui-q-tracker">Câu: 1/15</span>
+            <span>Chuyên đề: Quãng đường & Vận tốc</span>
+        </div>
+        
+        <div class="question-text" id="ui-question">Nội dung câu hỏi...</div>
+        <div class="options-grid" id="ui-options"></div>
+        
+        <div class="feedback-box" id="ui-feedback">
+            <div class="feedback-title" id="ui-fb-title">Trạng thái</div>
+            <div id="ui-fb-exp" style="font-size: 1.1rem; line-height: 1.5; color: var(--text-main);">Giải thích...</div>
+        </div>
+
+        <button class="btn" id="btn-next" style="display: none; margin-top: 25px; align-self: center;" onclick="game.next()">TIẾP TỤC ➔</button>
+    </div>
+
+    <!-- MÀN HÌNH KẾT QUẢ -->
+    <div class="screen" id="screen-end">
+        <div class="icon-large">🏁</div>
+        <h1 class="title">HOÀN THÀNH CHẶNG ĐUA</h1>
+        <div class="stats" style="flex-direction: column; gap: 15px; margin: 20px 0; background: rgba(255,255,255,0.05); padding: 30px; border-radius: 12px; width: 100%; max-width: 400px;">
+            <p>Tay đua: <span id="ui-end-name" style="color: var(--primary);"></span></p>
+            <p>Lớp: <span id="ui-end-class" style="color: var(--primary);"></span></p>
+            <p>Số câu đúng: <span id="ui-end-correct" style="color: var(--success);"></span> / 15</p>
+            <p>Tổng điểm: <span id="ui-end-score" style="color: var(--secondary);"></span></p>
+            <p>Thời gian: <span id="ui-end-time" style="color: var(--text-main);"></span></p>
+        </div>
+        <p id="msg-saved" style="color: var(--success); display: none; margin-bottom: 20px; font-weight: bold; font-size: 1.2rem;">✅ Dữ liệu đã được đồng bộ lên Google Sheets!</p>
+        <button class="btn" onclick="location.reload()">ĐĂNG XUẤT</button>
+    </div>
+
+    <!-- LỚP PHỦ ĐANG LƯU -->
+    <div class="overlay" id="overlay-loading">
+        <div class="loader"></div>
+        <h3 style="color: var(--primary);">Đang truyền dữ liệu về hệ thống...</h3>
+        <p style="color: var(--text-muted); margin-top: 10px;">Vui lòng không đóng trình duyệt!</p>
+    </div>
+</div>
+
+<script>
+/**
+ * ==============================================================
+ * THẦY/CÔ DÁN ĐƯỜNG LINK WEB APP (ĐUÔI /EXEC) VÀO BIẾN BÊN DƯỚI
+ * ==============================================================
+ */
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyfLIh_SbCRc4lB_t10Nk-7LCp2XiJK8its0uDZJOw4OrTBagdFz48erT2MSt9CH_GUog/exec"; 
+
+/**
+ * DỮ LIỆU CÂU HỎI (Trọng tâm Bài 4 & Bài 5 - Vật Lí 10 KNTT)
+ */
+const db = [
+    {
+        q: "Khi một vật chuyển động, sự khác biệt cơ bản giữa độ dịch chuyển và quãng đường đi được là gì?",
+        opts: [
+            "Độ dịch chuyển là đại lượng vô hướng, quãng đường là đại lượng vectơ.",
+            "Độ dịch chuyển là đại lượng vectơ, quãng đường đi được là đại lượng vô hướng.",
+            "Độ lớn của độ dịch chuyển luôn lớn hơn quãng đường đi được.",
+            "Cả hai đều là đại lượng vectơ nhưng khác nhau về hướng."
+        ],
+        ans: 1,
+        exp: "Đại lượng vừa cho biết độ dài vừa cho biết hướng của sự thay đổi vị trí gọi là độ dịch chuyển (vectơ). Quãng đường chỉ là chiều dài quỹ đạo (vô hướng)[cite: 27].",
+        pts: 10
+    },
+    {
+        q: "Trong trường hợp nào sau đây, độ lớn của độ dịch chuyển bằng chính quãng đường đi được?",
+        opts: [
+            "Vật chuyển động trên đường cong khép kín.",
+            "Vật chuyển động thẳng và có đổi chiều chuyển động.",
+            "Vật chuyển động thẳng theo một chiều không đổi.",
+            "Vật chuyển động từ vị trí A đến B rồi quay về A."
+        ],
+        ans: 2,
+        exp: "Khi vật chuyển động thẳng, không đổi chiều thì độ lớn của độ dịch chuyển và quãng đường đi được bằng nhau[cite: 29].",
+        pts: 10
+    },
+    {
+        q: "Một người đi xe máy từ nhà thẳng hướng Đông 3 km, sau đó rẽ trái đi thẳng hướng Bắc 4 km. Quãng đường người đó đi được là bao nhiêu?",
+        opts: ["5 km", "7 km", "1 km", "12 km"],
+        ans: 1,
+        exp: "Quãng đường là tổng độ dài quỹ đạo chuyển động: s = 3 + 4 = 7 km[cite: 28].",
+        pts: 10
+    },
+    {
+        q: "Một người đi xe máy từ nhà thẳng hướng Đông 3 km, sau đó rẽ trái đi thẳng hướng Bắc 4 km. Độ lớn độ dịch chuyển của người đó là bao nhiêu?",
+        opts: ["7 km", "1 km", "5 km", "12 km"],
+        ans: 2,
+        exp: "Độ dịch chuyển được tính bằng cạnh huyền của tam giác vuông: d = √(3² + 4²) = 5 km[cite: 28].",
+        pts: 20
+    },
+    {
+        q: "Hệ quy chiếu dùng để xác định vị trí và thời gian của vật chuyển động bao gồm những yếu tố nào?",
+        opts: [
+            "Hệ toạ độ và đồng hồ.",
+            "Mốc thời gian và thước đo.",
+            "Hệ toạ độ, mốc thời gian và đồng hồ đo thời gian.",
+            "Vật làm mốc và thước đo."
+        ],
+        ans: 2,
+        exp: "Hệ toạ độ kết hợp với mốc thời gian và đồng hồ đo thời gian được gọi là hệ quy chiếu[cite: 26].",
+        pts: 10
+    },
+    {
+        q: "Tốc kế (đồng hồ đo tốc độ) đặt trước mặt người lái xe trên ô tô đo đại lượng vật lí nào?",
+        opts: [
+            "Tốc độ trung bình.",
+            "Vận tốc trung bình.",
+            "Gia tốc tức thời.",
+            "Tốc độ tức thời."
+        ],
+        ans: 3,
+        exp: "Tốc kế chỉ tốc độ mà xe đang chạy vào thời điểm người lái xe đọc số chỉ, gọi là tốc độ tức thời[cite: 31].",
+        pts: 10
+    },
+    {
+        q: "Trong Vật lí, vận tốc trung bình (vectơ v) được xác định bằng biểu thức nào sau đây?",
+        opts: [
+            "Vectơ độ dịch chuyển chia cho thời gian dịch chuyển.",
+            "Quãng đường đi được chia cho thời gian.",
+            "Quãng đường đi được nhân với thời gian.",
+            "Vectơ độ dịch chuyển nhân với thời gian."
+        ],
+        ans: 0,
+        exp: "Vận tốc trung bình được dùng thương số của độ dịch chuyển và thời gian dịch chuyển để xác định độ nhanh chậm theo một hướng: vectơ v = vectơ d / t[cite: 31].",
+        pts: 10
+    },
+    {
+        q: "Một vận động viên điền kinh chạy cự li 100m mất 11,54s. Tốc độ trung bình của vận động viên này xấp xỉ bao nhiêu?",
+        opts: ["8,67 m/s", "10,00 m/s", "11,54 m/s", "9,80 m/s"],
+        ans: 0,
+        exp: "Tốc độ trung bình = Quãng đường / Thời gian = 100 / 11,54 ≈ 8,67 m/s[cite: 30].",
+        pts: 20
+    },
+    {
+        q: "Khi tính toán tổng hợp vận tốc, biểu thức cộng vận tốc nào sau đây là ĐÚNG? (Với 1 là vật, 2 là hệ quy chiếu chuyển động, 3 là hệ quy chiếu đứng yên)",
+        opts: [
+            "Vectơ v(1,3) = Vectơ v(1,2) + Vectơ v(2,3)",
+            "Vectơ v(1,3) = Vectơ v(1,2) - Vectơ v(2,3)",
+            "Vectơ v(1,2) = Vectơ v(1,3) + Vectơ v(2,3)",
+            "Vectơ v(2,3) = Vectơ v(1,2) + Vectơ v(1,3)"
+        ],
+        ans: 0,
+        exp: "Công thức cộng vận tốc: Vận tốc của vật (1) đối với vật (3) bằng tổng vectơ vận tốc của vật (1) đối với vật (2) và vận tốc của vật (2) đối với vật (3)[cite: 32].",
+        pts: 10
+    },
+    {
+        q: "Trên đoàn tàu đang chạy thẳng với vận tốc 10 m/s so với mặt đường, một hành khách đi về phía đầu tàu với vận tốc 1 m/s so với mặt sàn tàu. Vận tốc của hành khách so với mặt đường là:",
+        opts: ["9 m/s", "10 m/s", "11 m/s", "1 m/s"],
+        ans: 2,
+        exp: "Vì hai chuyển động cùng hướng, vận tốc tổng hợp: v(1,3) = 1 + 10 = 11 m/s[cite: 32].",
+        pts: 20
+    },
+    {
+        q: "Một ca nô chạy hết tốc lực trên mặt nước yên lặng đạt tốc độ 20 km/h. Nếu ca nô chạy ngược dòng sông có tốc độ dòng chảy là 5 km/h thì tốc độ của ca nô so với bờ là bao nhiêu?",
+        opts: ["25 km/h", "15 km/h", "20 km/h", "4 km/h"],
+        ans: 1,
+        exp: "Chuyển động ngược chiều nên độ lớn vận tốc bằng hiệu: v = 20 - 5 = 15 km/h.",
+        pts: 20
+    },
+    {
+        q: "Một máy bay bay theo hướng Bắc với vận tốc 200 m/s thì bị gió từ hướng Tây thổi vào với vận tốc 20 m/s. Vận tốc tổng hợp của máy bay xấp xỉ bằng:",
+        opts: ["220 m/s", "180 m/s", "201 m/s", "190 m/s"],
+        ans: 2,
+        exp: "Hai vectơ vận tốc vuông góc, vận tốc tổng hợp: v = √(200² + 20²) ≈ 201 m/s[cite: 33].",
+        pts: 30
+    },
+    {
+        q: "Người ta dùng khái niệm 'tốc độ trung bình' (v = s/t) để đặc trưng cho điều gì của chuyển động?",
+        opts: [
+            "Sự thay đổi vị trí và hướng của vật trong không gian.",
+            "Tính chất nhanh hay chậm của chuyển động.",
+            "Chiều chuyển động của vật.",
+            "Sự thay đổi gia tốc của vật."
+        ],
+        ans: 1,
+        exp: "Tốc độ trung bình dùng để xác định độ nhanh, chậm của chuyển động dựa trên quãng đường đi được trong cùng một đơn vị thời gian[cite: 30].",
+        pts: 10
+    },
+    {
+        q: "Vectơ vận tốc có những đặc điểm nào sau đây?",
+        opts: [
+            "Gốc nằm trên vật, hướng của độ dịch chuyển, độ dài tỉ lệ với độ lớn vận tốc.",
+            "Gốc nằm tại hệ tọa độ, hướng của quỹ đạo, độ dài tùy ý.",
+            "Chỉ có độ lớn, không có hướng và gốc.",
+            "Gốc nằm trên vật, hướng luôn theo trục Ox, độ dài cố định."
+        ],
+        ans: 0,
+        exp: "Vectơ vận tốc có: Gốc nằm trên vật chuyển động; Hướng là hướng của độ dịch chuyển; Độ dài tỉ lệ với độ lớn của vận tốc[cite: 32].",
+        pts: 10
+    },
+    {
+        q: "Một người bơi ngang từ bờ bên này sang bờ bên kia của dòng sông rộng 50m có dòng chảy từ Bắc xuống Nam. Khi sang đến bờ kia người đó trôi xuôi dòng 50m. Độ dịch chuyển là:",
+        opts: ["100 m", "50 m", "70,7 m", "0 m"],
+        ans: 2,
+        exp: "Hai thành phần vuông góc đều bằng 50m, độ dịch chuyển d = √(50² + 50²) = 50√2 ≈ 70,7m[cite: 29].",
+        pts: 20
+    }
+];
+
+/**
+ * AUDIO SYSTEM (Tạo âm thanh trực tiếp bằng code)
+ */
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(type) {
+    if(game.isMuted) return;
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    const now = audioCtx.currentTime;
+    
+    if (type === 'correct') {
+        osc.type = 'sine'; osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+        gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        osc.start(now); osc.stop(now + 0.4);
+    } else if (type === 'wrong') {
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(250, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.3);
+        gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+        osc.start(now); osc.stop(now + 0.3);
+    } else if (type === 'win') {
+        osc.type = 'square'; osc.frequency.setValueAtTime(400, now); osc.frequency.setValueAtTime(600, now + 0.15);
+        osc.frequency.setValueAtTime(800, now + 0.3); osc.frequency.setValueAtTime(1046, now + 0.45);
+        gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.8);
+        osc.start(now); osc.stop(now + 0.8);
+    } else if (type === 'timeout') {
+        osc.type = 'triangle'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(50, now + 1);
+        gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0.01, now + 1);
+        osc.start(now); osc.stop(now + 1);
+    }
+}
+
+/**
+ * GAME ENGINE
+ */
+const TOTAL_TIME = 1200; // 20 phút
+
+const game = {
+    studentName: "",
+    studentClass: "",
+    index: 0,
+    score: 0,
+    correct: 0,
+    timeLeft: TOTAL_TIME,
+    timerInterval: null,
+    isMuted: false,
+
+    els: {
+        scrLogin: document.getElementById('screen-login'),
+        scrPlay: document.getElementById('screen-play'),
+        scrEnd: document.getElementById('screen-end'),
+        inpName: document.getElementById('input-name'),
+        inpClass: document.getElementById('input-class'),
+        score: document.getElementById('ui-score'),
+        time: document.getElementById('ui-time'),
+        prog: document.getElementById('ui-progress'),
+        tracker: document.getElementById('ui-q-tracker'),
+        question: document.getElementById('ui-question'),
+        options: document.getElementById('ui-options'),
+        fbBox: document.getElementById('ui-feedback'),
+        fbTitle: document.getElementById('ui-fb-title'),
+        fbExp: document.getElementById('ui-fb-exp'),
+        btnNext: document.getElementById('btn-next'),
+        btnMute: document.getElementById('btn-mute'),
+        overlay: document.getElementById('overlay-loading')
+    },
+
+    init: function() {
+        this.els.btnMute.onclick = () => {
+            this.isMuted = !this.isMuted;
+            this.els.btnMute.innerText = this.isMuted ? "🔇" : "🔊";
+            if(!this.isMuted && audioCtx.state === 'suspended') audioCtx.resume();
+        };
+    },
+
+    login: function() {
+        const name = this.els.inpName.value.trim();
+        const cls = this.els.inpClass.value.trim();
+        if(!name || !cls) { alert("Vui lòng nhập đầy đủ Họ Tên và Lớp!"); return; }
+        this.studentName = name;
+        this.studentClass = cls;
+        this.start();
+    },
+
+    start: function() {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        this.index = 0; this.score = 0; this.correct = 0;
+        this.timeLeft = TOTAL_TIME;
+        
+        this.updateScore();
+        this.formatTime();
+        this.switchScreen(this.els.scrPlay);
+        this.load();
+        
+        clearInterval(this.timerInterval);
+        this.timerInterval = setInterval(() => {
+            this.timeLeft--;
+            this.formatTime();
+            if(this.timeLeft <= 0) {
+                clearInterval(this.timerInterval);
+                playSound('timeout');
+                alert("Đã hết thời gian làm bài!");
+                this.end();
+            }
+        }, 1000);
+    },
+
+    formatTime: function() {
+        const m = Math.floor(this.timeLeft / 60).toString().padStart(2, '0');
+        const s = (this.timeLeft % 60).toString().padStart(2, '0');
+        this.els.time.innerText = `${m}:${s}`;
+    },
+
+    switchScreen: function(target) {
+        this.els.scrLogin.classList.remove('active');
+        this.els.scrPlay.classList.remove('active');
+        this.els.scrEnd.classList.remove('active');
+        target.classList.add('active');
+    },
+
+    load: function() {
+        const q = db[this.index];
+        this.els.fbBox.className = 'feedback-box';
+        this.els.btnNext.style.display = 'none';
+        this.els.options.innerHTML = '';
+        
+        this.els.tracker.innerText = `Câu: ${this.index + 1}/${db.length}`;
+        this.els.prog.style.width = `${(this.index / db.length) * 100}%`;
+        this.els.question.innerText = q.q;
+
+        const labels = ['A', 'B', 'C', 'D'];
+        q.opts.forEach((opt, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'opt-btn';
+            btn.innerHTML = `<span class="opt-letter">${labels[i]}</span> <span>${opt}</span>`;
+            btn.onclick = () => this.check(i, btn);
+            this.els.options.appendChild(btn);
+        });
+    },
+
+    check: function(idx, btn) {
+        const q = db[this.index];
+        const allBtns = this.els.options.querySelectorAll('.opt-btn');
+        allBtns.forEach(b => b.disabled = true);
+
+        if (idx === q.ans) {
+            btn.classList.add('correct');
+            this.score += q.pts;
+            this.correct++;
+            this.showFB(true, `✅ CHÍNH XÁC (+${q.pts} Điểm)`, q.exp);
+            playSound('correct');
+        } else {
+            btn.classList.add('wrong');
+            allBtns[q.ans].classList.add('correct'); 
+            this.showFB(false, "❌ CHƯA CHÍNH XÁC", q.exp);
+            playSound('wrong');
+        }
+        
+        this.updateScore();
+        this.els.btnNext.style.display = 'block';
+    },
+
+    showFB: function(isCorrect, title, exp) {
+        this.els.fbBox.className = `feedback-box show ${isCorrect ? 'success' : 'error'}`;
+        this.els.fbTitle.innerText = title;
+        this.els.fbExp.innerText = exp;
+    },
+
+    updateScore: function() { this.els.score.innerText = this.score; },
+
+    next: function() {
+        this.index++;
+        if (this.index < db.length) this.load();
+        else this.end();
+    },
+
+    end: function() {
+        clearInterval(this.timerInterval);
+        this.els.prog.style.width = '100%';
+        
+        const timeUsedSec = TOTAL_TIME - this.timeLeft;
+        const mUsed = Math.floor(timeUsedSec / 60).toString().padStart(2, '0');
+        const sUsed = (timeUsedSec % 60).toString().padStart(2, '0');
+        const timeStr = `${mUsed} phút ${sUsed} giây`;
+
+        document.getElementById('ui-end-name').innerText = this.studentName;
+        document.getElementById('ui-end-class').innerText = this.studentClass;
+        document.getElementById('ui-end-correct').innerText = this.correct;
+        document.getElementById('ui-end-score').innerText = this.score;
+        document.getElementById('ui-end-time').innerText = timeStr;
+        
+        this.switchScreen(this.els.scrEnd);
+        playSound('win');
+        
+        this.saveDataToSheet(timeStr);
+    },
+
+    saveDataToSheet: function(timeStr) {
+        if(SCRIPT_URL.includes("DÁN_LINK")) {
+            console.log("Giáo viên chưa dán Link Web App. Đang chạy ở chế độ Offline.");
+            return;
+        }
+
+        this.els.overlay.style.display = 'flex';
+
+        // Sử dụng Fetch API đẩy POST sang Apps Script
+        const formData = new FormData();
+        formData.append("name", this.studentName);
+        formData.append("className", this.studentClass);
+        formData.append("correct", this.correct);
+        formData.append("score", this.score);
+        formData.append("timeUsed", timeStr);
+
+        fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            this.els.overlay.style.display = 'none';
+            if(data.result === "success") {
+                document.getElementById('msg-saved').style.display = 'block';
+            }
+        })
+        .catch(error => {
+            this.els.overlay.style.display = 'none';
+            alert("Lỗi kết nối mạng: Không thể lưu kết quả. Vui lòng chụp màn hình gửi Giáo viên!");
+        });
+    }
+};
+
+window.onload = () => game.init();
+</script>
+</body>
+</html>
